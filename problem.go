@@ -31,6 +31,16 @@ type snode struct {
 	value float64 // coeff
 }
 
+type Snode struct {
+	Index int
+	Value float64
+}
+
+type Attributes struct {
+	Class float64
+	Snodes []Snode
+}
+
 type Problem struct {
 	l      int       // #SVs
 	y      []float64 // labels
@@ -43,6 +53,46 @@ func NewProblem(file string, param *Parameter) (*Problem, error) {
 	prob := &Problem{l: 0, i: 0}
 	err := prob.Read(file, param)
 	return prob, err
+}
+
+func NewProblemFromAttributes(attributes []Attributes, param *Parameter) (*Problem, error) {
+	prob := &Problem{l: 0, i: 0}
+	err := prob.ReadFromAttributes(attributes, param)
+	return prob, err
+}
+
+func (problem *Problem) ReadFromAttributes(attributes []Attributes, param *Parameter) error {
+	problem.y = nil
+	problem.x = nil
+	problem.xSpace = nil
+
+	var max_idx int = 0
+	var l int = 0
+
+	for _, attr := range attributes {
+		problem.x = append(problem.x, len(problem.xSpace))
+		problem.y = append(problem.y, attr.Class)
+
+		for _, w := range attr.Snodes {
+			problem.xSpace = append(problem.xSpace, snode{
+				index: w.Index,
+				value: w.Value,
+			})
+			if w.Index > max_idx {
+				max_idx = w.Index
+			}
+		}
+
+		problem.xSpace = append(problem.xSpace, snode{index: -1})
+		l++
+	}
+	problem.l = l
+
+	if param.Gamma == 0 && max_idx > 0 {
+		param.Gamma = 1.0 / float64(max_idx)
+	}
+
+	return nil
 }
 
 func (problem *Problem) Read(file string, param *Parameter) error { // reads the problem from the specified file
